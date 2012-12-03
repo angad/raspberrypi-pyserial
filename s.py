@@ -1,7 +1,7 @@
 import serial
 import sys
 import thread
-
+import os
 sio = serial.Serial('/dev/ttyAMA0', 9600, stopbits=2)
 sio.open()
 
@@ -17,10 +17,12 @@ def readSerialThread():
 	print 'Starting serial thread'
 	while True:
 		try:
-			byte = sio.read()
-			# processInput(byte)
-			sys.stdout.write(byte)
-			sys.stdout.flush()
+			byte = sio.readline()
+			# byte = sio.read()
+			processInput(byte)
+			# sys.stdout.write(byte)
+			# sys.stdout.flush()
+			print repr(byte)
 		except Exception as ex:
 			print str(ex)
 
@@ -30,30 +32,33 @@ def processInput(byte):
 	global transaction
 	global quantity
 	global barcode
-
-
-	if byte == 'O' and sio.read() == 'P':
-		item = {}
-		transaction = []
-		count = 0
-		print "New Transaction"
 	
-	if byte == 'I' and sio.read() == 'T':
-		count = count + 1
-		item['quantity'] = quantity
-		print "New Item"
+	command = ''
+	barcode = ''
 	
-	if byte == 'B' and sio.read() == 'A':
-		for i in range(1,8):
-			barcode = barcode + sio.read() 
-		item['barcode'] = barcode
-		print item
-		print "Barcode received"
+	if byte[0] == 'i' or  byte[0] == '_':
+		line = byte[1:].partition(',')
+		print line
+		barcode = line[0]
+		quantity = line[2]
 
-	if byte == 'Q' and sio.read() == 'A':
-		quanitty = sio.read()
-		item['quantity'] = quantity
-		print "Quantity received"
+		print "Barcode: " + barcode
+		print "Quantity: " + quantity
+
+		curl =  os.popen("curl -s --data 'barcode=%s' http://172.27.229.252/getPrice.php" % (barcode)).read()
+		print repr(curl)
+		curl.strip()
+		sio.write(curl)
+
+	#if byte == '_':
+	#	transaction = []
+	#	item = {}
+	#	count = 0
+	#	print "New Transaction!"
+	
+
+	#if byte == '!':
+	
 
 def writeSerialThread(bytes):
 	sio.write(bytes)
