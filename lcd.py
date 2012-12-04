@@ -39,7 +39,7 @@ def processInput(byte):
 	command = ''
 	barcode = ''
 	
-	if byte[0] == 'i' or  byte[0] == '_':
+	if byte[0] == '1' or  byte[0] == '_':
 		line = byte[1:].partition(',')
 		print line
 		barcode = line[0]
@@ -70,12 +70,12 @@ def main():
 	hex = open('code.txt', 'r')
 	code = hex.read()
 
+	
 	try:
 		thread.start_new_thread(readSerialThread, ())
 	except Exception as ex:
 		print str(ex)
 
-	sleep(3)
 	# sio.write('1')
 
 	sendHex = input('1 - send hex')
@@ -88,6 +88,57 @@ def main():
 	getinput = raw_input("sup!")
 	sio.write(getinput)
 
+	byte = sio.read()
+	if byte == '1':
+		curl = os.popen("curl -s --data 'ID=1' http://127.0.1.1/lcd.php").read()
+		curl = curl.strip()
+		print repr(curl)
+	
+	curl = curl.rsplit(',')
+	print curl
+
+
+	maxlen = 16
+	curr = 0
+	for i in curl[0]:
+		curr = curr + 1
+		if curr == maxlen: 
+			break
+		sleep(0.1)
+		sio.write(i)
+	
+	for i in range(1,25):
+		sleep(0.1)
+		sio.write('0')
+
+	sleep(0.1)	
+	sio.write('Q')
+	sleep(0.1)
+	sio.write(':')
+	
+	for i in curl[1]:
+		sleep(0.1)
+		sio.write(i)
+
+	sleep(0.1)	
+	sio.write('P')
+	sleep(0.1)
+	sio.write(':')
+	
+	for i in curl[2]:
+		sleep(0.1)
+		sio.write(i)
+
+	sleep(0.1)
+	sio.write('$')
+		
+	#sleep(1)
+	#sio.write('1')
+	#sleep(1)
+	#sio.write('2')
+	#sleep(1)
+	#sio.write('3')
+	#sleep(1)
 	# sio.write('1')	
 
 	while 1:
