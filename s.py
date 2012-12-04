@@ -67,6 +67,13 @@ def addNewItem(barcode, quantity):
 	curl =  os.popen("curl -s --data 'barcode=%s' http://127.0.1.1/getPrice.php" % (barcode)).read()
 	print repr(curl)
 	curl.strip()
+	# print curl.index('.')
+	# print len(curl)
+
+	if (curl.find('.')!= -1) and ((len(curl) - curl.find('.')) == 2):
+		curl = curl + '0'
+	if len(curl) == 1:
+		sio.write('^')
 	sio.write(curl)
 	sio.write('$')
 	
@@ -83,8 +90,11 @@ def doneTransaction():
 	curl = os.popen("curl -s --data 'arr=%s' http://127.0.1.1/checkout.php" % (curlstr)).read()
 	print repr(curl)
 	curl.strip()
-	sio.write(curl)
-	sio.write('$')
+	if not "Barcode" in curl:
+		sio.write(curl)
+		sio.write('$')
+	else:
+		sio.write('^')
 	#pass
 
 
