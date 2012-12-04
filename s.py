@@ -19,7 +19,7 @@ def readSerialThread():
 		try:
 			# byte = sio.readline()
 			byte = sio.read()
-			if byte != '\x08' and byte != 'n' and byte != '_':
+			if byte != '\x08' and byte != 'n' and byte != '_' and byte != '@':
 				cmd = cmd + byte
 			if byte == '\n':
 				cmd = ''
@@ -28,17 +28,23 @@ def readSerialThread():
 			if byte == 'n':
 				print cmd
 				anItem = cmd.rsplit(',')
+				if len(anItem) != 2:
+					sio.write('^')
+					cmd = ''
 				addNewItem(anItem[0], anItem[1])
 				# processInput(cmd)
 				cmd = ''
 			if byte == 't':
 				doneTransaction()
+			if byte == '-':
+				cmd = ''
+			if byte == '@':
+				cancelPreviousItem()
 			sys.stdout.write(byte)
 			sys.stdout.flush()
 			#print repr(byte)
 		except Exception as ex:
 			print str(ex)
-
 
 def newTransaction():
 	global transaction
@@ -48,6 +54,13 @@ def newTransaction():
 	transaction = []
 	item = {}
 	count = 0
+
+def cancelPreviousItem():
+	global transaction
+	if count > 0:
+		print transaction
+		del transaction[-1]
+		print transaction
 
 
 def addNewItem(barcode, quantity):
@@ -74,6 +87,7 @@ def addNewItem(barcode, quantity):
 		curl = curl + '0'
 	if len(curl) == 1:
 		sio.write('^')
+		del transaction[-1]
 	sio.write(curl)
 	sio.write('$')
 	
@@ -90,6 +104,12 @@ def doneTransaction():
 	curl = os.popen("curl -s --data 'arr=%s' http://127.0.1.1/checkout.php" % (curlstr)).read()
 	print repr(curl)
 	curl.strip()
+
+	if (curl.find('.')!= -1) and ((len(curl) - curl.find('.')) == 2):
+		curl = curl + '0'
+	if len(curl) == 1:
+		sio.write('^')
+
 	if not "Barcode" in curl:
 		sio.write(curl)
 		sio.write('$')
