@@ -10,55 +10,83 @@ print sio
 transaction = []
 item = {}
 count = 0
-barcode = ''
-quantity = 1
 
+cmd = ''
 def readSerialThread():
+	global cmd
 	print 'Starting serial thread'
 	while True:
 		try:
 			# byte = sio.readline()
 			byte = sio.read()
-			# processInput(byte)
+			if byte != '\x08' and byte != 'n' and byte != '_':
+				cmd = cmd + byte
+			if byte == '\n':
+				cmd = ''
+			if byte == '_':
+				newTransaction()
+			if byte == 'n':
+				print cmd
+				anItem = cmd.rsplit(',')
+				addNewItem(anItem[0], anItem[1])
+				# processInput(cmd)
+				cmd = ''
+			if byte == 't':
+				doneTransaction()
 			sys.stdout.write(byte)
 			sys.stdout.flush()
-			# print repr(byte)
+			#print repr(byte)
 		except Exception as ex:
 			print str(ex)
 
-def processInput(byte):
+
+def newTransaction():
+	global transaction
+	global item
 	global count
+	
+	transaction = []
+	item = {}
+	count = 0
+
+
+def addNewItem(barcode, quantity):
 	global item
 	global transaction
-	global quantity
-	global barcode
+	global count
 	
-	command = ''
-	barcode = ''
-	
-	if byte[0] == 'i' or  byte[0] == '_':
-		line = byte[1:].partition(',')
-		print line
-		barcode = line[0]
-		quantity = line[2]
+	item = {}
+	item['barcode'] = barcode
+	item['quantity'] = quantity
+	print item
+	transaction.append(item)
+	# transaction[count] = item
+	count = count + 1
 
-		print "Barcode: " + barcode
-		print "Quantity: " + quantity
-
-		curl =  os.popen("curl -s --data 'barcode=%s' http://127.0.1.1/getPrice.php" % (barcode)).read()
-		print repr(curl)
-		curl.strip()
-		sio.write(curl)
-
-	#if byte == '_':
-	#	transaction = []
-	#	item = {}
-	#	count = 0
-	#	print "New Transaction!"
+	# get price
+	curl =  os.popen("curl -s --data 'barcode=%s' http://127.0.1.1/getPrice.php" % (barcode)).read()
+	print repr(curl)
+	curl.strip()
+	sio.write(curl)
+	sio.write('$')
 	
 
-	#if byte == '!':
-	
+def doneTransaction():
+	# do curl request to add item to transaction
+	print "Done transaction!"
+	print transaction
+	curlstr = ''
+	for i in transaction:
+		curlstr = curlstr + i['barcode'] + ',' + i['quantity'] + '|'
+	curlstr = curlstr[0:len(curlstr)-1]
+
+	curl = os.popen("curl -s --data 'arr=%s' http://127.0.1.1/checkout.php" % (curlstr)).read()
+	print repr(curl)
+	curl.strip()
+	sio.write(curl)
+	sio.write('$')
+	#pass
+
 
 def writeSerialThread(bytes):
 	sio.write(bytes)
