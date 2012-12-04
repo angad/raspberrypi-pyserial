@@ -2,6 +2,9 @@ import serial
 import sys
 import thread
 import os
+
+from time import sleep
+
 sio = serial.Serial('/dev/ttyAMA0', 9600, stopbits=2)
 sio.open()
 
@@ -66,11 +69,14 @@ def writeSerialThread(bytes):
 def main():
 	hex = open('code.txt', 'r')
 	code = hex.read()
-	
+
 	try:
 		thread.start_new_thread(readSerialThread, ())
 	except Exception as ex:
 		print str(ex)
+
+	sleep(3)
+	# sio.write('1')
 
 	sendHex = input('1 - send hex')
 	if sendHex == 1:
@@ -78,6 +84,11 @@ def main():
 			thread.start_new_thread(writeSerialThread, (code, ))
 		except Exception as ex:
 			print str(ex)
+
+	getinput = raw_input("sup!")
+	sio.write(getinput)
+
+	# sio.write('1')	
 
 	while 1:
 		pass
